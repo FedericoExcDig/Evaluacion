@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121.
+-->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>C:\Users\usuario\Desktop\Nueva carpeta\PublishEncuestas</_PublishTargetUrl>
+    <History>True|2024-01-11T14:14:39.0672221Z;True|2024-01-10T12:44:46.0094410-03:00;True|2024-01-10T08:55:32.1120775-03:00;True|2024-01-10T08:55:16.6632354-03:00;True|2024-01-08T09:40:44.5974948-03:00;True|2024-01-05T12:50:35.4781387-03:00;True|2024-01-05T12:25:53.6523325-03:00;True|2024-01-05T12:17:19.5096571-03:00;True|2024-01-05T11:32:51.0283684-03:00;True|2024-01-05T11:14:42.1927333-03:00;True|2024-01-02T13:13:30.7463201-03:00;False|2024-01-02T13:12:45.6745492-03:00;True|2023-12-27T10:32:29.9677810-03:00;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+</Project>

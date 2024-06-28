@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ApiTurmedica</name>
+    </assembly>
+    <members>
+        <member name="M:ApiTurmedica.Controllers.EspecialidadesController.GetEspecialidadesPorInstitucion(System.Int32,System.Int32)">
+            <summary>
+            idinst = 32 patologia digestiva
+            </summary>
+            <param name="idEspecialidad"></param>
+            <param name="idInstitucion"></param>
+                    /// <param name="index"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ApiTurmedica.Controllers.InstitucionesController.GetInstitucionesConEspecialidadesValidas">
+            <summary>
+            idinst = 32 patologia digestiva
+            </summary>
+            <param name="idEspecialidad"></param>
+            <param name="idInstitucion"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ApiTurmedica.Controllers.PrestadoresController.GetPrestador(System.Int32)">
+            <summary>
+            idinst = 32 patologia digestiva
+            </summary>
+            <param name="idPrestador"></param>
+            <param name="idInstitucion"></param>
+            <returns></returns>
+            
+        </member>
+    </members>
+</doc>

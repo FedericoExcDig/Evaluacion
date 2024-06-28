@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\ApiTurmedica.props" />
+</Project>
