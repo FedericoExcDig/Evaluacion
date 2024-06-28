@@ -277,3 +277,4 @@ C:\Users\usuario\Desktop\Codigos Fede\Evaluacion\ApiMomentos\obj\Debug\net6.0\Ap
 C:\Users\usuario\Desktop\Codigos Fede\Evaluacion\ApiMomentos\obj\Debug\net6.0\ApiObjetos.genruntimeconfig.cache
 C:\Users\usuario\Desktop\Codigos Fede\Evaluacion\ApiMomentos\obj\Debug\net6.0\ref\ApiObjetos.dll
 C:\Users\usuario\Desktop\Codigos Fede\Evaluacion\ApiMomentos\bin\Debug\net6.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\usuario\Desktop\Codigos Fede\Evaluacion\ApiMomentos\obj\Debug\net6.0\ApiObjetos.sourcelink.json

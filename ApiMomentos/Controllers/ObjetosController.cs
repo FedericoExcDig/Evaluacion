@@ -197,32 +197,41 @@ namespace ApiObjetos.Controllers
                 return res;
             }
         }
-
         [HttpGet]
         [Route("GetPacientes")]
         [Authorize]
-        public async Task<Respuesta> GetPacientes()
+        public async Task<Respuesta> GetPacientes(string? nombre, string? numero_telefono)
         {
             Respuesta res = new Respuesta();
             try
             {
-    
-                    var Objetos = await _db.Pacientes.ToListAsync();
-                    res.Ok = true;
-                    res.Data = Objetos;
-                    return res;
-                
+                IQueryable<Pacientes> query = _db.Pacientes;
 
+                // Filter by nombre if provided
+                if (!string.IsNullOrEmpty(nombre))
+                {
+                    query = query.Where(p => p.nombre.Contains(nombre));
+                }
 
+                // Filter by numero_telefono if provided
+                if (!string.IsNullOrEmpty(numero_telefono))
+                {
+                    query = query.Where(p => p.numero_telefono.Contains(numero_telefono));
+                }
+
+                var pacientes = await query.ToListAsync();
+
+                res.Ok = true;
+                res.Data = pacientes;
             }
             catch (Exception ex)
             {
-                res.Message = ex.ToString();
                 res.Ok = false;
+                res.Message = ex.ToString();
             }
+
             return res;
         }
-
 
         [HttpGet]
         [Route("GetPaciente")]
