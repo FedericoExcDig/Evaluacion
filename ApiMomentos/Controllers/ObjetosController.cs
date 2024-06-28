@@ -20,7 +20,7 @@ namespace ApiObjetos.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Apply authorization globally to the controller
+    [Authorize] // Aplica la seguridad a todos los metodos globalmente
 
     public class ObjetosController : ControllerBase
     {
@@ -36,89 +36,86 @@ namespace ApiObjetos.Controllers
         }
 
         [HttpPost("register")]
-        [AllowAnonymous] // Allow anonymous access to this endpoint
+        [AllowAnonymous] // Para poder ser accedido sin necesidad de token
         public async Task<IActionResult> Register(string username, string password)
         {
             try
             {
-                // Check if the username is already taken
+                // Revisa si el usuario ya existe
                 var existingUser = await _db.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
                 if (existingUser != null)
-                    return BadRequest("Username already exists");
+                    return BadRequest("El usuario ya existe");
 
-                // Create a new user
                 var newUser = new Usuarios
                 {
                     Username = username,
-                    PasswordHash = HashPassword(password) // Hash password securely before storing
+                    PasswordHash = HashPassword(password) // Hashea la contraseña antes de ser guardada en la base de datos
                 };
 
                 _db.Usuarios.Add(newUser);
                 await _db.SaveChangesAsync();
 
-                return Ok("User registered successfully");
+                return Ok("Usuario registrado exitosamente");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error registering user: {ex.Message}");
+                return StatusCode(500, $"Error: {ex.Message}");
             }
         }
 
         [HttpPost("login")]
-        [AllowAnonymous] // Allow anonymous access to this endpoint
+        [AllowAnonymous] // Para poder ser accedido sin necesidad de token
         public async Task<IActionResult> Login(LoginModel model)
         {
             try
             {
-                // Authenticate user
                 var user = await AuthenticateUser(model.Username, model.Password);
                 if (user == null)
                     return Unauthorized();
 
-                // Generate JWT token
+                // Generacion de token JWT
                 var token = _jwtService.GenerateToken(user.Id.ToString(), user.Username);
 
                 return Ok(new { Token = token });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error logging in: {ex.Message}");
+                return StatusCode(500, $"Error: {ex.Message}");
             }
         }
 
-        // Helper method to authenticate user
+
+
+        // Encuentra el usuario y verifica su contraseña con el hash guardado dentro de la base de datos
         private async Task<Usuarios> AuthenticateUser(string username, string password)
         {
             var user = await _db.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
             if (user == null)
                 return null;
 
-            // Example: Verify password (you should hash and verify securely in real scenarios)
             if (VerifyPassword(password, user.PasswordHash))
                 return user;
 
             return null;
         }
 
-        // Example: Hash password (you should implement a secure hashing algorithm)
+        //  Hashea un string que sería la contraseña, ahora mismo no contiene metodo de seguridad pero se puede agregar una encriptación
         private string HashPassword(string password)
         {
-            // Example: Use a secure hashing algorithm like BCrypt or ASP.NET Core's built-in PasswordHasher
-            return password; // Replace with actual hashing logic
+            return password; 
         }
 
-        // Example: Verify password (you should implement password verification securely)
+        // Compara el hash con la contraseña guardada mediante el mismo metodo de seguridad
         private bool VerifyPassword(string password, string passwordHash)
         {
-            // Example: Implement secure password verification logic
-            return password == passwordHash; // Replace with actual password verification logic
+            return password == passwordHash;
         }
 
 
 
         [HttpPut]
-        [Route("UpdatePaciente")]
-        [Authorize]
+        [Route("UpdatePaciente")] // Hace un update a un paciente en especifico segun los datos que se le brinden. 
+        [Authorize] // Esto no es realmente necesario ya que apliqué autorización globalmente. Pero lo dejo para el ejemplo.
         public async Task<Respuesta> UpdatearPaciente(int id, string? nuevoNombre, DateTime? nuevaFechaNacimiento, string? nuevoGenero, string? nuevoNumeroTelefono, string? nuevaDireccion)
         {
             Respuesta res = new Respuesta();
@@ -134,7 +131,6 @@ namespace ApiObjetos.Controllers
 
                 try
                 {
-                    // Update properties based on provided values
                     if (nuevoNombre != null)
                     {
                         _db.Database.ExecuteSqlRaw(
@@ -198,7 +194,7 @@ namespace ApiObjetos.Controllers
             }
         }
         [HttpGet]
-        [Route("GetPacientes")]
+        [Route("GetPacientes")] // Obtiene todos los pacientes, con la posibilidad de filtrarlos si se incluye el nombre o el numero telefonico.
         [Authorize]
         public async Task<Respuesta> GetPacientes(string? nombre, string? numero_telefono)
         {
@@ -207,13 +203,13 @@ namespace ApiObjetos.Controllers
             {
                 IQueryable<Pacientes> query = _db.Pacientes;
 
-                // Filter by nombre if provided
+                // filtra segun nombre
                 if (!string.IsNullOrEmpty(nombre))
                 {
                     query = query.Where(p => p.nombre.Contains(nombre));
                 }
 
-                // Filter by numero_telefono if provided
+                // filtra segun numero
                 if (!string.IsNullOrEmpty(numero_telefono))
                 {
                     query = query.Where(p => p.numero_telefono.Contains(numero_telefono));
@@ -234,7 +230,7 @@ namespace ApiObjetos.Controllers
         }
 
         [HttpGet]
-        [Route("GetPaciente")]
+        [Route("GetPaciente")] // Obtiene un paciente basado en su idPaciente. Se obtiene la lista de los idPaciente con el metodo GetPacientes
         [Authorize]
 
         public async Task<Respuesta> GetPaciente(int idPaciente)
@@ -262,7 +258,7 @@ namespace ApiObjetos.Controllers
         }
 
         [HttpPost]
-        [Route("PostNuevoPaciente")]
+        [Route("PostNuevoPaciente")] // Crea un nuevo paciente
         [Authorize]
 
         public async Task<Respuesta> PostNuevoPaciente(string nombre, DateTime fechaNacimiento, string genero, string numeroTelefono, string direccion)
@@ -270,7 +266,6 @@ namespace ApiObjetos.Controllers
             Respuesta res = new Respuesta();
             try
             {
-                // Create a new Pacientes object and set its properties
                 Pacientes nuevoPaciente = new Pacientes
                 {
                     nombre = nombre,
@@ -280,24 +275,52 @@ namespace ApiObjetos.Controllers
                     direccion = direccion
                 };
 
-                // Add the new patient to the database context
                 _db.Add(nuevoPaciente);
 
-                // Save changes to the database asynchronously
                 await _db.SaveChangesAsync();
 
-                // Prepare the response message
                 res.Message = "El paciente se grabó correctamente";
                 res.Ok = true;
             }
             catch (Exception ex)
             {
-                // Handle exceptions and prepare error message
                 res.Message = $"Error: {ex.Message}";
                 res.Ok = false;
             }
 
-            // Return the response
+            return res;
+        }
+
+        [HttpDelete]
+        [Route("DeletePaciente")] // Encuentra el ID del paciente para luego eliminarlo
+        [Authorize]
+        public async Task<Respuesta> DeletePaciente(int idPaciente)
+        {
+            Respuesta res = new Respuesta();
+            try
+            {
+                var paciente = await _db.Pacientes.FindAsync(idPaciente);
+
+                if (paciente == null)
+                {
+                    res.Ok = false;
+                    res.Message = $"Paciente with ID {idPaciente} not found.";
+                }
+                else
+                {
+                    _db.Pacientes.Remove(paciente);
+                    await _db.SaveChangesAsync();
+
+                    res.Ok = true;
+                    res.Message = $"Paciente with ID {idPaciente} deleted successfully.";
+                }
+            }
+            catch (Exception ex)
+            {
+                res.Ok = false;
+                res.Message = $"Error deleting Paciente: {ex.Message}";
+            }
+
             return res;
         }
 
