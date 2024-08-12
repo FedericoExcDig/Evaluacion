@@ -15,117 +15,134 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ApiObjetos.Auth;
+using Newtonsoft.Json.Linq;
+using System.Reflection;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace ApiObjetos.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Aplica la seguridad a todos los metodos globalmente
+    [AllowAnonymous] // Aplica la seguridad a todos los metodos globalmente
 
     public class ObjetosController : ControllerBase
     {
-        private readonly ObjetosContext _db;
+        private readonly ApplicationDbContext _db;
         private readonly IConfiguration _configuration;
-        private readonly JwtService _jwtService;
 
-        public ObjetosController(ObjetosContext db, IConfiguration configuration, JwtService jwtService)
+        public ObjetosController(ApplicationDbContext db, IConfiguration configuration)
         {
             _db = db;
             _configuration = configuration;
-            _jwtService = jwtService;
         }
 
-        [HttpPost("register")]
-        [AllowAnonymous] // Para poder ser accedido sin necesidad de token
-        public async Task<IActionResult> Register(string username, string password)
-        {
-            try
-            {
-                // Revisa si el usuario ya existe
-                var existingUser = await _db.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
-                if (existingUser != null)
-                    return BadRequest("El usuario ya existe");
+   
+        #region Categorias
 
-                var newUser = new Usuarios
-                {
-                    Username = username,
-                    PasswordHash = HashPassword(password) // Hashea la contraseña antes de ser guardada en la base de datos
-                };
+        [HttpPost]
+        [Route("CrearCategoria")] // Crea un nuevo paciente
+        [AllowAnonymous]
 
-                _db.Usuarios.Add(newUser);
-                await _db.SaveChangesAsync();
-
-                return Ok("Usuario registrado exitosamente");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error: {ex.Message}");
-            }
-        }
-
-        [HttpPost("login")]
-        [AllowAnonymous] // Para poder ser accedido sin necesidad de token
-        public async Task<IActionResult> Login(LoginModel model)
-        {
-            try
-            {
-                var user = await AuthenticateUser(model.Username, model.Password);
-                if (user == null)
-                    return Unauthorized();
-
-                // Generacion de token JWT
-                var token = _jwtService.GenerateToken(user.Id.ToString(), user.Username);
-
-                return Ok(new { Token = token });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error: {ex.Message}");
-            }
-        }
-
-
-
-        // Encuentra el usuario y verifica su contraseña con el hash guardado dentro de la base de datos
-        private async Task<Usuarios> AuthenticateUser(string username, string password)
-        {
-            var user = await _db.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
-            if (user == null)
-                return null;
-
-            if (VerifyPassword(password, user.PasswordHash))
-                return user;
-
-            return null;
-        }
-
-        //  Hashea un string que sería la contraseña, ahora mismo no contiene metodo de seguridad pero se puede agregar una encriptación
-        private string HashPassword(string password)
-        {
-            return password; 
-        }
-
-        // Compara el hash con la contraseña guardada mediante el mismo metodo de seguridad
-        private bool VerifyPassword(string password, string passwordHash)
-        {
-            return password == passwordHash;
-        }
-
-
-
-        [HttpPut]
-        [Route("UpdatePaciente")] // Hace un update a un paciente en especifico segun los datos que se le brinden. 
-        [Authorize] // Esto no es realmente necesario ya que apliqué autorización globalmente. Pero lo dejo para el ejemplo.
-        public async Task<Respuesta> UpdatearPaciente(int id, string? nuevoNombre, DateTime? nuevaFechaNacimiento, string? nuevoGenero, string? nuevoNumeroTelefono, string? nuevaDireccion)
+        public async Task<Respuesta> CrearCategoria(string nombreCategoria, int Precio, int? capacidadMaxima, int? UsuarioID)
         {
             Respuesta res = new Respuesta();
             try
             {
-                var pac = await _db.Pacientes.FindAsync(id);
+                CategoriasHabitaciones nuevaCategoria = new CategoriasHabitaciones
+                {
+
+                    NombreCategoria = nombreCategoria,
+                    PrecioNormal = Precio,
+                    FechaRegistro = DateTime.Now
+                };
+
+                _db.Add(nuevaCategoria);
+
+                await _db.SaveChangesAsync();
+
+                res.Message = "La categoría se creó correctamente";
+                res.Ok = true;
+            }
+            catch (Exception ex)
+            {
+                res.Message = $"Error: {ex.Message}";
+                res.Ok = false;
+            }
+
+            return res;
+        }
+
+
+        [HttpGet]
+        [Route("GetCategoria")] // Obtiene un paciente basado en su idPaciente. Se obtiene la lista de los idPaciente con el metodo GetPacientes
+        [AllowAnonymous]
+
+        public async Task<Respuesta> GetCategoria(int id)
+        {
+            Respuesta res = new Respuesta();
+            try
+            {
+
+                var Objeto = await _db.CategoriasHabitaciones.Where(
+                t => t.CategoriaId == id
+                ).ToListAsync();
+                res.Ok = true;
+                res.Data = Objeto[0];
+                return res;
+
+
+
+            }
+            catch (Exception ex)
+            {
+                res.Message = ex.ToString();
+                res.Ok = false;
+            }
+            return res;
+        }
+
+        [HttpGet]
+        [Route("GetCategorias")] // Obtiene un paciente basado en su idPaciente. Se obtiene la lista de los idPaciente con el metodo GetPacientes
+        [AllowAnonymous]
+
+        public async Task<Respuesta> GetCategorias()
+        {
+            Respuesta res = new Respuesta();
+            try
+            {
+
+                var Objeto = await _db.CategoriasHabitaciones.ToListAsync();
+                res.Ok = true;
+                res.Data = Objeto;
+                return res;
+
+
+
+            }   
+            catch (Exception ex)
+            {
+                res.Message = ex.ToString();
+                res.Ok = false;
+            }
+            return res;
+        }
+
+        [HttpPut]
+        [Route("ActualizarCategoria")] // Hace un update a un paciente en especifico segun los datos que se le brinden. 
+        [AllowAnonymous]
+        public async Task<Respuesta> ActualizarCategoria(int id, string? nuevoNombre, int nuevaCapacidad, int Precio)
+        {
+            Respuesta res = new Respuesta();
+            try
+            {
+                var pac = await _db.CategoriasHabitaciones.FindAsync(id);
                 if (pac == null)
                 {
                     res.Ok = false;
-                    res.Message = "No se encontró el paciente";
+                    res.Message = "No se encontró la categoría";
                     return res;
                 }
 
@@ -134,47 +151,31 @@ namespace ApiObjetos.Controllers
                     if (nuevoNombre != null)
                     {
                         _db.Database.ExecuteSqlRaw(
-                            "UPDATE Pacientes SET nombre = @Nombre WHERE id = @Id",
+                            "UPDATE CategoriasHabitaciones SET NombreCategoria = @Nombre WHERE CategoriaID = @Id",
                             new SqlParameter("@Nombre", nuevoNombre),
                             new SqlParameter("@Id", id)
                         );
                     }
-                    if (nuevaFechaNacimiento != null)
+                    if (nuevaCapacidad != null)
                     {
                         _db.Database.ExecuteSqlRaw(
-                            "UPDATE Pacientes SET fecha_nacimiento = @FechaNacimiento WHERE id = @Id",
-                            new SqlParameter("@FechaNacimiento", nuevaFechaNacimiento),
+                            "UPDATE CategoriasHabitaciones SET CapacidadMaxima = @nuevaCapacidad WHERE CategoriaID = @Id",
+                            new SqlParameter("@nuevaCapacidad", nuevaCapacidad),
                             new SqlParameter("@Id", id)
                         );
                     }
-                    if (nuevoGenero != null)
+                    if (Precio != null)
                     {
                         _db.Database.ExecuteSqlRaw(
-                            "UPDATE Pacientes SET genero = @Genero WHERE id = @Id",
-                            new SqlParameter("@Genero", nuevoGenero),
-                            new SqlParameter("@Id", id)
-                        );
-                    }
-                    if (nuevoNumeroTelefono != null)
-                    {
-                        _db.Database.ExecuteSqlRaw(
-                            "UPDATE Pacientes SET numero_telefono = @NumeroTelefono WHERE id = @Id",
-                            new SqlParameter("@NumeroTelefono", nuevoNumeroTelefono),
-                            new SqlParameter("@Id", id)
-                        );
-                    }
-                    if (nuevaDireccion != null)
-                    {
-                        _db.Database.ExecuteSqlRaw(
-                            "UPDATE Pacientes SET direccion = @Direccion WHERE id = @Id",
-                            new SqlParameter("@Direccion", nuevaDireccion),
+                            "UPDATE CategoriasHabitaciones SET PrecioNormal = @Precio WHERE CategoriaID = @Id",
+                            new SqlParameter("@Precio", Precio),
                             new SqlParameter("@Id", id)
                         );
                     }
 
                     // Return successful response
                     res.Ok = true;
-                    res.Message = "Se actualizó el paciente";
+                    res.Message = "Se actualizó la categoría";
                     return res;
                 }
                 catch (Exception e)
@@ -193,135 +194,280 @@ namespace ApiObjetos.Controllers
                 return res;
             }
         }
-        [HttpGet]
-        [Route("GetPacientes")] // Obtiene todos los pacientes, con la posibilidad de filtrarlos si se incluye el nombre o el numero telefonico.
-        [Authorize]
-        public async Task<Respuesta> GetPacientes(string? nombre, string? numero_telefono)
-        {
-            Respuesta res = new Respuesta();
-            try
-            {
-                IQueryable<Pacientes> query = _db.Pacientes;
-
-                // filtra segun nombre
-                if (!string.IsNullOrEmpty(nombre))
-                {
-                    query = query.Where(p => p.nombre.Contains(nombre));
-                }
-
-                // filtra segun numero
-                if (!string.IsNullOrEmpty(numero_telefono))
-                {
-                    query = query.Where(p => p.numero_telefono.Contains(numero_telefono));
-                }
-
-                var pacientes = await query.ToListAsync();
-
-                res.Ok = true;
-                res.Data = pacientes;
-            }
-            catch (Exception ex)
-            {
-                res.Ok = false;
-                res.Message = ex.ToString();
-            }
-
-            return res;
-        }
-
-        [HttpGet]
-        [Route("GetPaciente")] // Obtiene un paciente basado en su idPaciente. Se obtiene la lista de los idPaciente con el metodo GetPacientes
-        [Authorize]
-
-        public async Task<Respuesta> GetPaciente(int idPaciente)
-        {
-            Respuesta res = new Respuesta();
-            try
-            {
-
-                var Objeto = await _db.Pacientes.Where(
-                t => t.id == idPaciente
-                ).ToListAsync();
-                res.Ok = true;
-                res.Data = Objeto[0];
-                return res;
-
-
-
-            }
-            catch (Exception ex)
-            {
-                res.Message = ex.ToString();
-                res.Ok = false;
-            }
-            return res;
-        }
-
-        [HttpPost]
-        [Route("PostNuevoPaciente")] // Crea un nuevo paciente
-        [Authorize]
-
-        public async Task<Respuesta> PostNuevoPaciente(string nombre, DateTime fechaNacimiento, string genero, string numeroTelefono, string direccion)
-        {
-            Respuesta res = new Respuesta();
-            try
-            {
-                Pacientes nuevoPaciente = new Pacientes
-                {
-                    nombre = nombre,
-                    fecha_nacimiento = fechaNacimiento,
-                    genero = genero,
-                    numero_telefono = numeroTelefono,
-                    direccion = direccion
-                };
-
-                _db.Add(nuevoPaciente);
-
-                await _db.SaveChangesAsync();
-
-                res.Message = "El paciente se grabó correctamente";
-                res.Ok = true;
-            }
-            catch (Exception ex)
-            {
-                res.Message = $"Error: {ex.Message}";
-                res.Ok = false;
-            }
-
-            return res;
-        }
 
         [HttpDelete]
-        [Route("DeletePaciente")] // Encuentra el ID del paciente para luego eliminarlo
-        [Authorize]
-        public async Task<Respuesta> DeletePaciente(int idPaciente)
+        [Route("AnularCategoria")] // Encuentra el ID del paciente para luego eliminarlo
+        [AllowAnonymous]
+        public async Task<Respuesta> AnularCategoria(int id, bool Estado)
         {
             Respuesta res = new Respuesta();
             try
             {
-                var paciente = await _db.Pacientes.FindAsync(idPaciente);
+                var habitacion = await _db.CategoriasHabitaciones.FindAsync(id);
 
-                if (paciente == null)
+                if (habitacion == null)
                 {
                     res.Ok = false;
-                    res.Message = $"Paciente with ID {idPaciente} not found.";
+                    res.Message = $"La habitación con el id {id} no se encontró.";
                 }
                 else
                 {
-                    _db.Pacientes.Remove(paciente);
+                    habitacion.Anulado = Estado;
                     await _db.SaveChangesAsync();
 
                     res.Ok = true;
-                    res.Message = $"Paciente with ID {idPaciente} deleted successfully.";
+                    res.Message = $"Se anuló la habitación correctamente";
                 }
             }
             catch (Exception ex)
             {
                 res.Ok = false;
-                res.Message = $"Error deleting Paciente: {ex.Message}";
+                res.Message = $"Ocurrió un error: {ex.Message}";
             }
 
             return res;
+        }
+
+        #endregion
+        [HttpPut]
+        [Route("Update/{modelName}/{id}")]
+        [AllowAnonymous]
+
+        public async Task<IActionResult> Update(string modelName, int id, [FromBody] JObject data)
+        {
+            try
+            {
+                // Get the type of the model from its name
+                Type modelType = Assembly.GetExecutingAssembly().GetTypes().FirstOrDefault(t => t.Name == modelName);
+                if (modelType == null)
+                {
+                    return BadRequest($"Model '{modelName}' not found.");
+                }
+
+                // Get the DbSet for the model type using reflection
+                var dbSet = typeof(DbContext).GetMethod("Set", new Type[] { }).MakeGenericMethod(modelType).Invoke(_db, null);
+                if (dbSet == null)
+                {
+                    return BadRequest("Invalid model type.");
+                }
+
+                // Find the entity by ID using reflection
+                var findMethod = dbSet.GetType().GetMethod("FindAsync", new Type[] { typeof(object[]) });
+                var entityTask = (Task)findMethod.Invoke(dbSet, new object[] { new object[] { id } });
+                await entityTask.ConfigureAwait(false);
+                var entity = ((dynamic)entityTask).Result;
+                if (entity == null)
+                {
+                    return NotFound(new { Message = $"{modelName} with ID {id} not found.", Ok = false });
+                }
+
+                // Update the entity with new data
+                var updatedEntity = data.ToObject(modelType);
+                foreach (var property in modelType.GetProperties())
+                {
+                    var newValue = property.GetValue(updatedEntity);
+                    if (newValue != null)
+                    {
+                        property.SetValue(entity, newValue);
+                    }
+                }
+
+                _db.Entry(entity).State = EntityState.Modified;
+                await _db.SaveChangesAsync();
+
+                return Ok(new { Message = $"{modelName} with ID {id} updated successfully.", Ok = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = $"Error updating {modelName}: {ex.Message}", Ok = false });
+            }
+        }
+        [HttpGet]
+        [Route("Get/{modelName}/{id}")]
+        [AllowAnonymous]
+
+        public async Task<IActionResult> Get(string modelName, int id)
+        {
+            try
+            {
+                // Get the type of the model from its name
+                Type modelType = Assembly.GetExecutingAssembly().GetTypes().FirstOrDefault(t => t.Name == modelName);
+                if (modelType == null)
+                {
+                    return BadRequest($"Model '{modelName}' not found.");
+                }
+
+                // Get the DbSet for the model type using reflection
+                var dbSet = typeof(DbContext).GetMethod("Set", new Type[] { }).MakeGenericMethod(modelType).Invoke(_db, null);
+                if (dbSet == null)
+                {
+                    return BadRequest("Invalid model type.");
+                }
+
+                // Find the entity by ID using reflection
+                var findMethod = dbSet.GetType().GetMethod("FindAsync", new Type[] { typeof(object[]) });
+                var entityTask = (Task)findMethod.Invoke(dbSet, new object[] { new object[] { id } });
+                await entityTask.ConfigureAwait(false);
+                var entity = ((dynamic)entityTask).Result;
+                if (entity == null)
+                {
+                    return NotFound(new { Message = $"{modelName} with ID {id} not found.", Ok = false });
+                }
+
+                return Ok(entity);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = $"Error retrieving {modelName}: {ex.Message}", Ok = false });
+            }
+        }
+
+
+        [HttpPost]
+        [Route("Create/{modelName}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Create(string modelName, [FromBody] JsonElement data)
+        {
+            if (data.ValueKind == JsonValueKind.Undefined || data.ValueKind == JsonValueKind.Null)
+            {
+                return BadRequest("The data field is required.");
+            }
+
+            try
+            {
+                // Get the type of the model from its name
+                Type modelType = Assembly.GetExecutingAssembly().GetTypes().FirstOrDefault(t => t.Name == modelName);
+                if (modelType == null)
+                {
+                    return BadRequest($"Model '{modelName}' not found.");
+                }
+
+                // Create an instance of the model
+                var modelInstance = Activator.CreateInstance(modelType);
+
+                // Populate the model with data
+                foreach (var property in data.EnumerateObject())
+                {
+                    var propertyInfo = modelType.GetProperty(property.Name);
+                    if (propertyInfo != null)
+                    {
+                        var value = ConvertJsonElement(property.Value, propertyInfo.PropertyType);
+                        propertyInfo.SetValue(modelInstance, value);
+                    }
+                }
+
+                // Get the DbSet for the model type using reflection
+                var dbSetMethod = typeof(DbContext).GetMethod("Set", Type.EmptyTypes);
+                var dbSet = dbSetMethod?.MakeGenericMethod(modelType).Invoke(_db, null);
+                if (dbSet == null)
+                {
+                    return BadRequest("Invalid model type.");
+                }
+
+                // Add the model to the DbSet
+                var addMethod = dbSet.GetType().GetMethod("Add");
+                addMethod?.Invoke(dbSet, new[] { modelInstance });
+
+                await _db.SaveChangesAsync();
+
+                return Ok(new { Message = $"{modelName} created successfully.", Ok = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = $"Error creating {modelName}: {ex.Message} + {ex.InnerException}", Ok = false });
+            }
+        }
+
+        [HttpPost]
+        [Route("ReservarHabitacion")] // Crea un nuevo paciente
+
+        private object ConvertJsonElement(JsonElement jsonElement, Type targetType)
+        {
+            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                // Get the underlying type
+                var underlyingType = Nullable.GetUnderlyingType(targetType);
+                if (jsonElement.ValueKind == JsonValueKind.Null)
+                {
+                    return null;
+                }
+                return ConvertJsonElement(jsonElement, underlyingType);
+            }
+
+            // Handle non-nullable types
+            if (targetType == typeof(string))
+            {
+                return jsonElement.GetString();
+            }
+            if (targetType == typeof(int))
+            {
+                return jsonElement.GetInt32();
+            }
+            if (targetType == typeof(bool))
+            {
+                return jsonElement.GetBoolean();
+            }
+            if (targetType == typeof(DateTime))
+            {
+                return jsonElement.GetDateTime();
+            }
+            if (targetType == typeof(decimal))
+            {
+                return jsonElement.GetDecimal();
+            }
+            if (targetType == typeof(TimeSpan))
+            {
+                return TimeSpan.Parse(jsonElement.GetString());
+            }
+
+            // Handle other types as needed
+            throw new NotSupportedException($"The type '{targetType.FullName}' is not supported.");
+        }
+
+        [HttpDelete]
+        [Route("Delete/{modelName}/{id}")]
+        [AllowAnonymous]
+
+        public async Task<IActionResult> Delete(string modelName, int id)
+        {
+            try
+            {
+                // Get the type of the model from its name
+                Type modelType = Assembly.GetExecutingAssembly().GetTypes().FirstOrDefault(t => t.Name == modelName);
+                if (modelType == null)
+                {
+                    return BadRequest($"Model '{modelName}' not found.");
+                }
+
+                // Get the DbSet for the model type using reflection
+                var dbSet = typeof(DbContext).GetMethod("Set", new Type[] { }).MakeGenericMethod(modelType).Invoke(_db, null);
+                if (dbSet == null)
+                {
+                    return BadRequest("Invalid model type.");
+                }
+
+                // Find the entity by ID using reflection
+                var findMethod = dbSet.GetType().GetMethod("FindAsync", new Type[] { typeof(object[]) });
+                var entityTask = (Task)findMethod.Invoke(dbSet, new object[] { new object[] { id } });
+                await entityTask.ConfigureAwait(false);
+                var entity = ((dynamic)entityTask).Result;
+                if (entity == null)
+                {
+                    return NotFound(new { Message = $"{modelName} with ID {id} not found.", Ok = false });
+                }
+
+                // Remove the entity
+                var removeMethod = dbSet.GetType().GetMethod("Remove");
+                removeMethod.Invoke(dbSet, new object[] { entity });
+
+                await _db.SaveChangesAsync();
+
+                return Ok(new { Message = $"{modelName} with ID {id} deleted successfully.", Ok = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = $"Error deleting {modelName}: {ex.Message}", Ok = false });
+            }
         }
 
     }
