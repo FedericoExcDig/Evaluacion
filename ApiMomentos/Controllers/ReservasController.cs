@@ -28,6 +28,7 @@ namespace ApiObjetos.Controllers
             Respuesta res = new Respuesta();
             try
             {
+                // Step 1: Retrieve the room details
                 var habitacion = await GetHabitacionById(HabitacionID);
                 if (habitacion == null)
                 {
@@ -36,6 +37,21 @@ namespace ApiObjetos.Controllers
                     return res;
                 }
 
+                // Step 2: Retrieve free time slots for the specified day
+                var horariosLibres = await HorariosLibres(HabitacionID, FechaReserva.Date);
+
+                // Step 3: Check if the requested reservation time falls within any of the free slots
+                bool isValidReservation = horariosLibres.Any(horario =>
+                    FechaReserva.TimeOfDay >= horario.Start && FechaFin.TimeOfDay <= horario.End);
+
+                if (!isValidReservation)
+                {
+                    res.Message = "El horario solicitado no está disponible.";
+                    res.Ok = false;
+                    return res;
+                }
+
+                // Step 4: If the reservation is valid, proceed with creating the reservation
                 Reserva nuevaReserva = new Reserva
                 {
                     VisitaId = VisitaID,

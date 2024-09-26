@@ -131,7 +131,7 @@ namespace ApiObjetos.Controllers
         }
 
         [HttpPut]
-        [Route("ActualizarCategoria")] // Hace un update a un paciente en especifico segun los datos que se le brinden. 
+        [Route("ActualizarCategoria")] 
         [AllowAnonymous]
         public async Task<Respuesta> ActualizarCategoria(int id, string? nuevoNombre, int nuevaCapacidad, int Precio)
         {

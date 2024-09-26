@@ -120,6 +120,63 @@ namespace ApiObjetos.Controllers
             return res;
         }
 
+        [HttpGet]
+        [Route("GetMovimientosVisita")] // Obtiene un paciente basado en su idPaciente. Se obtiene la lista de los idPaciente con el metodo GetPacientes
+        [AllowAnonymous]
+
+        public async Task<Respuesta> GetMovimientosVisita(int id)
+        {
+            Respuesta res = new Respuesta();
+            try
+            {
+
+                var Objeto = await _db.Movimientos.Where(
+                t => t.VisitaId == id
+                ).ToListAsync(); res.Ok = true;
+                res.Data = Objeto;
+                return res;
+
+
+
+            }
+            catch (Exception ex)
+            {
+                res.Message = ex.ToString();
+                res.Ok = false;
+            }
+            return res;
+        }
+        [HttpGet]
+        [Route("GetTotalVisita")] // Obtiene el total facturado para una visita
+        [AllowAnonymous]
+        public async Task<Respuesta> GetTotalVisita(int id)
+        {
+            Respuesta res = new Respuesta();
+            try
+            {
+                // Step 1: Retrieve the list of Movimientos for the given VisitaId
+                var movimientos = await _db.Movimientos
+                                           .Where(t => t.VisitaId == id)
+                                           .ToListAsync();
+
+                // Step 2: Calculate the total sum of TotalFacturado
+                var totalFacturado = movimientos.Sum(m => m.TotalFacturado);
+
+                // Step 3: Return the result
+                res.Ok = true;
+                res.Data = totalFacturado; // return the total sum
+                res.Message = "Total facturado calculado correctamente.";
+            }
+            catch (Exception ex)
+            {
+                res.Message = $"Error: {ex.Message}";
+                res.Ok = false;
+            }
+
+            return res;
+        }
+
+
 
         [HttpDelete]
         [Route("AnularMovimiento")] // Encuentra el ID del paciente para luego eliminarlo
